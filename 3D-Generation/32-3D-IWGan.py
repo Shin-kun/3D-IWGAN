@@ -80,7 +80,7 @@ g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).mi
 
 ####### Training ################
 sess=tf.Session()
-tl.ops.set_gpu_fraction(sess=sess, gpu_fraction=0.998)
+tl.utils.set_gpu_fraction(gpu_fraction=0.998)
 sess.run(tf.global_variables_initializer())
 
 # load checkpoints
@@ -95,7 +95,7 @@ files,_ = grab_files(args.data)
 #training starts here  
 for epoch in range(args.epochs):
     random.shuffle(files)
-    for idx in xrange(0, len(files)/args.batchsize):
+    for idx in range(0, int(len(files)/args.batchsize)):
         file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
         models, start_time = make_inputs(file_batch)
         

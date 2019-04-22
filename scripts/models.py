@@ -11,7 +11,7 @@ from glob import glob
 
 def Deconv(inputs, f_dim_in, dim, net, batch_size, f_dim_out = None, stride = 2 ):
 	if f_dim_out is None: 
-		f_dim_out = f_dim_in/2 
+		f_dim_out = int(f_dim_in/2)
 	return tl.layers.DeConv3dLayer(inputs,
 								shape = [4, 4, 4, f_dim_out, f_dim_in],
 								output_shape = [batch_size, dim, dim, dim, f_dim_out],
@@ -102,16 +102,16 @@ def discriminator(inputs ,output_size, improved = False, VAE_loss = False, sig =
 		net_0 = tl.layers.InputLayer(inputs, name='d/net_0/in')
 
 		net_1 = Conv3D(net_0, df_dim, '1', f_dim_in = 1 , batch_norm = False ) 
-		net_1.outputs = tl.activation.leaky_relu(net_1.outputs, alpha=0.2, name='d/net_1/lrelu')
+		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, alpha=0.2, name='d/net_1/lrelu')
 		
 		net_2 = Conv3D(net_1, df_dim*2, '2', batch_norm = not improved, is_train = is_train,) 
-		net_2.outputs = tl.activation.leaky_relu(net_2.outputs, alpha=0.2, name='d/net_2/lrelu')
+		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, alpha=0.2, name='d/net_2/lrelu')
 		
 		net_3 = Conv3D(net_2, df_dim*4, '3', batch_norm = not improved, is_train = is_train)  
-		net_3.outputs = tl.activation.leaky_relu(net_3.outputs, alpha=0.2, name='d/net_3/lrelu')
+		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, alpha=0.2, name='d/net_3/lrelu')
 		
 		net_4 = Conv3D(net_3, df_dim*8, '4', batch_norm = not improved, is_train = is_train)   
-		net_4.outputs = tl.activation.leaky_relu(net_4.outputs, alpha=0.2, name='d/net_4/lrelu')
+		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='d/net_4/lrelu')
 		
 		net_5 = FlattenLayer(net_4, name='d/net_5/flatten')
 		net_5 = tl.layers.DenseLayer(net_5, n_units=output_units, act=tf.identity,
@@ -135,31 +135,31 @@ def VAE(images, is_train = True):
 		net_1 = tl.layers.Conv2dLayer(net_0, shape=[11, 11, 3, sizes[0]],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 4, 4, 1], name='v/net_1/conv2d')
-		net_1.outputs = tl.activation.leaky_relu(net_1.outputs, alpha=0.2, name='v/net_1/lrelu')
+		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, alpha=0.2, name='v/net_1/lrelu')
 
 		net_2 = tl.layers.Conv2dLayer(net_1, shape=[5, 5, sizes[0], sizes[1]],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 4, 4, 1], name='v/net_2/conv2d')
 		net_2 = tl.layers.BatchNormLayer(net_2, is_train=is_train, name='v/net_2/batch_norm')
-		net_2.outputs = tl.activation.leaky_relu(net_2.outputs, alpha=0.2, name='v/net_2/lrelu')
+		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, alpha=0.2, name='v/net_2/lrelu')
 
 		net_3 = tl.layers.Conv2dLayer(net_2, shape=[5, 5, sizes[1], sizes[2]],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 1], name='v/net_3/conv2d')
 		net_3 = tl.layers.BatchNormLayer(net_3, is_train=is_train, name='v/net_3/batch_norm')
-		net_3.outputs = tl.activation.leaky_relu(net_3.outputs, alpha=0.2, name='v/net_3/lrelu')
+		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, alpha=0.2, name='v/net_3/lrelu')
 
 		net_4 = tl.layers.Conv2dLayer(net_3, shape=[5, 5, sizes[2], sizes[3]],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 1], name='v/net_4/conv2d')
 		net_4 = tl.layers.BatchNormLayer(net_4, is_train=is_train, name='v/net_4/batch_norm')
-		net_4.outputs = tl.activation.leaky_relu(net_4.outputs, alpha=0.2, name='v/net_4/lrelu')
+		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='v/net_4/lrelu')
 
 		net_5 = tl.layers.Conv2dLayer(net_4, shape=[8, 8, sizes[3], sizes[4]],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 1, 1, 1], name='v/net_5/conv2d')
 		net_5 = tl.layers.BatchNormLayer(net_5, is_train=is_train, name='v/net_5/batch_norm')
-		net_5.outputs = tl.activation.leaky_relu(net_5.outputs, alpha=0.2, name='v/net_5/lrelu')
+		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, alpha=0.2, name='v/net_5/lrelu')
 		net_6 = FlattenLayer(net_5, name='v/net_6/flatten')
 		means = tl.layers.DenseLayer(net_6, n_units= 200, act=tf.identity,
 											W_init = tf.random_normal_initializer(stddev=0.02),
@@ -182,24 +182,24 @@ def surface_VAE(inputs, is_train = True, batch_size= 128, output_size = 20):
 		net_1 = tl.layers.Conv3dLayer(net_0, shape=[4, 4, 4, 1, df_dim],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 2, 1], name='v/net_1/conv2d')
-		net_1.outputs = tl.activation.leaky_relu(net_1.outputs, alpha=0.2, name='v/net_1/lrelu')
+		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, alpha=0.2, name='v/net_1/lrelu')
 		
 		net_2 = tl.layers.Conv3dLayer(net_1, shape=[4, 4, 4, df_dim, df_dim*2],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 2, 1], name='v/net_2/conv2d')
 		net_2 = tl.layers.BatchNormLayer(net_2, is_train=is_train, name='v/net_2/batch_norm')
-		net_2.outputs = tl.activation.leaky_relu(net_2.outputs, alpha=0.2, name='v/net_2/lrelu')
+		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, alpha=0.2, name='v/net_2/lrelu')
 		
 		net_3 = tl.layers.Conv3dLayer(net_2, shape=[4, 4, 4, df_dim*2, df_dim*4],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 2, 1], name='v/net_3/conv2d')
 		net_3 = tl.layers.BatchNormLayer(net_3, is_train=is_train, name='v/net_3/batch_norm')
-		net_3.outputs = tl.activation.leaky_relu(net_3.outputs, alpha=0.2, name='v/net_3/lrelu')
+		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, alpha=0.2, name='v/net_3/lrelu')
 		
 		net_4 = tl.layers.Conv3dLayer(net_3, shape=[4, 4, 4, df_dim*4, df_dim*8],
 									   W_init = tf.random_normal_initializer(stddev=0.02),
 									   strides=[1, 2, 2, 2, 1], name='v/net_4/conv2d')
-		net_4.outputs = tl.activation.leaky_relu(net_4.outputs, alpha=0.2, name='v/net_4/lrelu')
+		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='v/net_4/lrelu')
 		net_4 = tl.layers.BatchNormLayer(net_4, is_train=is_train, name='v/net_4/batch_norm')
 		
 		net_5 = FlattenLayer(net_4, name='v/net_5/flatten')
