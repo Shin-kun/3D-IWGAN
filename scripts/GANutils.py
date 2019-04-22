@@ -49,7 +49,7 @@ def make_inputs_and_surfaces(file_batch, voxel_dir):
     return models, surfaces, start_time
 
 
-def save_voxels(save_dir, models, epock, recon_models = None): 
+def save_voxels(save_dir, models = None, epock, recon_models = None): 
     print("Saving the model")
     np.save(save_dir+str(epock)  , models) 
     if recon_models is not None: 
