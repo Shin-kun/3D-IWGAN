@@ -92,6 +92,10 @@ else:
 
 iter_counter = iter_counter - (iter_counter %5)
 files,_ = grab_files(args.data)
+
+print()
+print(files)
+print("this is files")
 #training starts here  
 for epoch in range(args.epochs):
     random.shuffle(files)
@@ -103,7 +107,7 @@ for epoch in range(args.epochs):
         errD,_= sess.run([d_loss, d_optim] , feed_dict={ real_models: models }) 
         track_d_loss.append(-errD)
         track_d_loss_iter.append(iter_counter)
-        
+
         # update the generator 
         if iter_counter % 5 ==0 :
             errG, _, objects= sess.run([g_loss, g_optim, G_Fake], feed_dict={})
@@ -119,7 +123,7 @@ for epoch in range(args.epochs):
      #saving the model 
     if np.mod(epoch, args.save) == 0:
         save_networks(checkpoint_dir,sess, net_g, net_d, epoch)
-      
+
 
     #saving learning info 
     if np.mod(epoch, args.graph) == 0: 
