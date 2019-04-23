@@ -93,9 +93,6 @@ else:
 iter_counter = iter_counter - (iter_counter %5)
 files,_ = grab_files(args.data)
 
-print()
-print(files)
-print("this is files")
 #training starts here  
 for epoch in range(args.epochs):
     random.shuffle(files)
