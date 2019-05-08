@@ -1,6 +1,8 @@
 import os
 import tensorlayer as tl
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from glob import glob
 from PIL import Image
@@ -22,7 +24,7 @@ def make_inputs_and_images(file_batch, voxel_dir):
     images = []
     for i,fil in enumerate(file_batch): 
         split = fil.split('/')
-        models.append(np.load( voxel_dir+ split[-1].split('_')[0] +'.npy'))
+        models.append(np.load( voxel_dir+ split[-1].split('.')[0] +'.npy'))
         img = Image.open(fil)
         images.append(np.asarray(img,dtype='uint8'))
     models = np.array(models)
@@ -63,18 +65,13 @@ def grab_files_images(image_dir, voxel_dir):
     pattern  = "*.jpg"
     image_dir+='/'
     voxel_dir+='/'
-    for dir,_,_ in os.walk(image_dir):
-        files.extend(glob(os.path.join(dir,pattern))) 
+    files = glob(image_dir + '*.jpg')
     voxels = [ v.split('/')[-1].split('.')[0] for v in glob(voxel_dir + '*')]
-    
     temp = []
     for f in files: 
-        if 'orig_' in f: 
-            continue 
-        if f.split('/')[-2] not in voxels: continue
         temp.append(f)
     files = []
-    valid = [] 
+    valid = []
     for i,t in enumerate(temp): 
         if len(valid) < 128 and i %33 == 0 :  
             valid.append(t)

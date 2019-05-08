@@ -20,18 +20,7 @@ g_sun2012pascalformat_root_folder = os.path.join(g_datasets_folder, 'sun2012pasc
 # ------------------------------------------------------------
 # RENDER FOR CNN PIPELINE
 # ------------------------------------------------------------
-g_shape_synset_name_pairs = [('02691156', 'aeroplane'),
-                             ('02834778', 'bicycle'),
-                             ('02858304', 'boat'),
-                             ('02876657', 'bottle'),
-                             ('02924116', 'bus'),
-                             ('02958343', 'car'),
-                             ('03001627', 'chair'),
-                             ('04379243', 'diningtable'),
-                             ('03790512', 'motorbike'),
-                             ('04256520', 'sofa'),
-                             ('04468005', 'train'),
-                             ('03211117', 'tvmonitor')]
+g_shape_synset_name_pairs = [('03001627', 'faces')]
 g_shape_synsets = [x[0] for x in g_shape_synset_name_pairs]
 g_shape_names = [x[1] for x in g_shape_synset_name_pairs]
 g_syn_images_folder = os.path.join(g_data_folder, 'syn_images')

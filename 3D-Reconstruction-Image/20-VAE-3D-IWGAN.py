@@ -12,8 +12,8 @@ import argparse
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
 parser.add_argument('-n','--name', default='Test', help='The name of the current experiment, this will be used to create folders and save models.')
-parser.add_argument('-d','--data', default='data/voxels/chair', help ='The location for the object voxel models.' )
-parser.add_argument('-i','--images', default='data/overlays/chair', help ='The location for the images.' )
+parser.add_argument('-d','--data', default='data/voxels/faces', help ='The location for the object voxel models.' )
+parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
 parser.add_argument('-e','--epochs', default=1500, help ='The number of epochs to run for.', type=int)
 parser.add_argument('-b','--batchsize', default=256, help ='The batch size.', type=int)
 parser.add_argument('-sample', default= 5, help='How often generated obejcts are sampled and saved.', type= int)
@@ -90,7 +90,7 @@ v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).mi
 config = tf.ConfigProto()
 config.gpu_options.allow_growth = True
 sess=tf.Session()
-tl.ops.set_gpu_fraction(sess=sess, gpu_fraction=0.998)
+tl.utils.set_gpu_fraction(gpu_fraction=0.998)
 sess.run(tf.global_variables_initializer())
 
 # load checkpoints
