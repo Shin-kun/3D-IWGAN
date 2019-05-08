@@ -9,6 +9,9 @@ import scripts
 from scripts.GANutils import *
 from scripts.models import *
 import argparse
+import logging
+
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
 parser.add_argument('-n','--name', default='Test', help='The name of the current experiment, this will be used to create folders and save models.')
@@ -113,7 +116,7 @@ if len(args.load_epoch)>1:
     start = int(args.load_epoch)
 else: 
     start = 0 
-print len(files)
+logging.debug(len(files))
 iter_counter = iter_counter - (iter_counter %5)
 for epoch in range(start, args.epochs):
     random.shuffle(files)
@@ -132,7 +135,7 @@ for epoch in range(start, args.epochs):
         track_recon_loss.append(r_loss)
         track_recon_loss_iter.append(iter_counter)
        
-        print("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
+        logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
         iter_counter += 1
         sys.stdout.flush()
 

@@ -7,6 +7,9 @@ import matplotlib.pyplot as plt
 from glob import glob
 from PIL import Image
 import time
+import logging 
+
+logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 # making soem subdirectories, chekcpoint stores the models,
 # savpoint saves some created objects at each epoch
@@ -52,7 +55,7 @@ def make_inputs_and_surfaces(file_batch, voxel_dir):
 
 
 def save_voxels(save_dir, models, epock, recon_models = None): 
-    print "Saving the model"
+    logging.debug("Saving the model")
     np.save(save_dir+str(epock)  , models) 
     if recon_models is not None: 
         np.save(save_dir+str(epock) + '_VAE', recon_models) 
@@ -98,7 +101,7 @@ def grab_files_surfaces(surface_dir, voxel_dir):
 
 
 def save_networks(checkpoint_dir, sess, net_g, net_d, epoch, net_m = None, net_s=None):
-    print("[*] Saving checkpoints...")
+    logging.debug("[*] Saving checkpoints...")
     if not os.path.exists(checkpoint_dir):
         os.makedirs(checkpoint_dir)
     # this saves as the latest version location
@@ -122,7 +125,7 @@ def save_networks(checkpoint_dir, sess, net_g, net_d, epoch, net_m = None, net_s
         tl.files.save_npz(net_s.all_params, name=net_s_name, sess=sess)
         tl.files.save_npz(net_m.all_params, name=net_m_iter_name, sess=sess)
         tl.files.save_npz(net_s.all_params, name=net_s_iter_name, sess=sess)
-    print("[*] Saving checkpoints SUCCESS!")
+    logging.debug("[*] Saving checkpoints SUCCESS!")
 
 
 
@@ -150,33 +153,33 @@ def savitzky_golay(y, window_size, order, deriv=0, rate=1):
 
 
 def load_networks(checkpoint_dir, sess, net_g, net_d, net_m = None, net_s = None, epoch = ''): 
-    print("[*] Loading checkpoints...")
+    logging.debug("[*] Loading checkpoints...")
     if len(epoch) >=1: epoch = '_' + epoch
     # load the latest checkpoints
     net_g_name = os.path.join(checkpoint_dir, 'net_g'+epoch+'.npz')
     net_d_name = os.path.join(checkpoint_dir, 'net_d'+epoch+'.npz')
     
     if not (os.path.exists(net_g_name) and os.path.exists(net_d_name)):
-        print("[!] Loading checkpoints failed!")
+        logging.debug("[!] Loading checkpoints failed!")
     else:
         net_g_loaded_params = tl.files.load_npz(name=net_g_name)
         net_d_loaded_params = tl.files.load_npz(name=net_d_name)
         tl.files.assign_params(sess, net_g_loaded_params, net_g)
         tl.files.assign_params(sess, net_d_loaded_params, net_d)
-        print("[*] Loading Generator and Discriminator checkpoints SUCCESS!")
+        logging.debug("[*] Loading Generator and Discriminator checkpoints SUCCESS!")
         
 
     if net_m is not None and net_s is not None: 
         net_m_name = os.path.join(checkpoint_dir, 'net_m'+epoch+'.npz')
         net_s_name = os.path.join(checkpoint_dir, 'net_s'+epoch+'.npz')
         if not (os.path.exists(net_m_name) and os.path.exists(net_s_name)):
-            print("[!] Loading VAE checkpoints failed!")
+            logging.debug("[!] Loading VAE checkpoints failed!")
         else: 
             net_m_loaded_params = tl.files.load_npz(name=net_m_name)
             net_s_loaded_params = tl.files.load_npz(name=net_s_name)
             tl.files.assign_params(sess, net_m_loaded_params, net_m)
             tl.files.assign_params(sess, net_s_loaded_params, net_s)
-            print("[*] Loading VAE checkpoints SUCCESS!")
+            logging.debug("[*] Loading VAE checkpoints SUCCESS!")
 def load_values(save_dir, recon = False, valid = False):
     outputs = []
     outputs.append(list(np.load(save_dir+'/plots/track_d_loss_iter.npy')))
@@ -228,5 +231,5 @@ def cal_acc(zeros,ones):
     for example in ones:
         if example[0]>0.5: accuracy += 1.0 
     accuracy = accuracy/(float(len(zeros) + len(ones))) 
-    print 'The accuracy of the discriminator is: ' + str(accuracy)
+    logging.debug('The accuracy of the discriminator is: ' + str(accuracy))
     return accuracy
