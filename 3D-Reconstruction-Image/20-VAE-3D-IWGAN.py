@@ -12,6 +12,7 @@ import argparse
 import logging
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # or any {'0', '1', '2'}
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
 parser.add_argument('-n','--name', default='Test', help='The name of the current experiment, this will be used to create folders and save models.')
