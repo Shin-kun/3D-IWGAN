@@ -90,7 +90,7 @@ v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).mi
 
 
 ####### Training ################
-config = tf.ConfigProto(allow_soft_placement=True)
+config = tf.ConfigProto((device_count = {'GPU': 1})
 config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 tl.utils.set_gpu_fraction(gpu_fraction=0.998)
