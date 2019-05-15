@@ -24,7 +24,7 @@ parser.add_argument('-save', default= 5, help='How often the network models are 
 parser.add_argument('-graph', default= 5, help='How often the discriminator loss and the reconstruction loss graphs are saved.', type= int)
 parser.add_argument('-l', '--load', default= False, help='Indicates if a previously loaded model should be loaded.', action = 'store_true')
 parser.add_argument('-le', '--load_epoch', default= '', help='The epoch to number to be loaded from.', type=str)
-
+parser.add_argument('-t' '--train' default=False, help='Indicates if model is already trained', action='store_true')
 args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name +'/'
@@ -118,41 +118,43 @@ else:
     start = 0 
 logging.debug(len(files))
 iter_counter = iter_counter - (iter_counter %5)
-for epoch in range(start, args.epochs):
-    random.shuffle(files)
-    for idx in xrange(0, len(files)/args.batchsize):
-        file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
-        models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
-        #training the discriminator and the VAE's encoder 
-        errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models: models}) 
-        track_d_loss.append(-errD)
-        track_d_loss_iter.append(iter_counter)
-    
+
+if  args.train:
+    for epoch in range(start, args.epochs):
+        random.shuffle(files)
+        for idx in xrange(0, len(files)/args.batchsize):
+            file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
+            models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
+            #training the discriminator and the VAE's encoder 
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models: models}) 
+            track_d_loss.append(-errD)
+            track_d_loss_iter.append(iter_counter)
         
-        #training the gen / decoder and the encoder 
-        if iter_counter % 5 ==0:
-            errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models })    
-        track_recon_loss.append(r_loss)
-        track_recon_loss_iter.append(iter_counter)
-       
-        logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
-        iter_counter += 1
-        sys.stdout.flush()
+            
+            #training the gen / decoder and the encoder 
+            if iter_counter % 5 ==0:
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models })    
+            track_recon_loss.append(r_loss)
+            track_recon_loss_iter.append(iter_counter)
+        
+            logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
+            iter_counter += 1
+            sys.stdout.flush()
 
-    #saving the model 
-    if np.mod(epoch, args.save) == 0:
-        save_networks(checkpoint_dir,sess, net_g, net_d, epoch, net_m,net_s)
-    #saving generated objects
-    if np.mod(epoch, args.sample) == 0:
-        models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict={images:batch_images})       
-        save_voxels(save_dir, models, epoch, recon_models )
-    #saving learning info 
-    if np.mod(epoch, args.graph) == 0: 
-        r_loss = sess.run([recon_loss], feed_dict={images:batch_images, real_models: models})
-        track_valid_loss.append(r_loss[0])
-        track_valid_loss_iter.append(iter_counter)
-#        render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
-        save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) # same here but for 300 
-
-
-    
+        #saving the model 
+        if np.mod(epoch, args.save) == 0:
+            save_networks(checkpoint_dir,sess, net_g, net_d, epoch, net_m,net_s)
+        #saving generated objects
+        if np.mod(epoch, args.sample) == 0:
+            models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict={images:batch_images})       
+            save_voxels(save_dir, models, epoch, recon_models )
+        #saving learning info 
+        if np.mod(epoch, args.graph) == 0: 
+            r_loss = sess.run([recon_loss], feed_dict={images:batch_images, real_models: models})
+            track_valid_loss.append(r_loss[0])
+            track_valid_loss_iter.append(iter_counter)
+    #        render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
+            save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) # same here but for 300 
+else:
+    # test data 
+    tl.utils.test(sess, net_g, acc=None, valid_images, valid_models, images, real_models, batch_size=args.batch_size, cost=None)
