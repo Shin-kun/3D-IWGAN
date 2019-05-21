@@ -27,8 +27,8 @@ parser.add_argument('-le', '--load_epoch', default= '', help='The epoch to numbe
 parser.add_argument('-t', '--train', default=False, help='Indicates if model is already trained', action='store_true')
 args = parser.parse_args()
 
-checkpoint_dir = "checkpoint/" + args.name +'/'
-save_dir =  "savepoint/" + args.name +'/'
+checkpoint_dir = "checkpoint/" + args.name
+save_dir =  "savepoint/" + args.name
 output_size = 20 
 
 ######### make directories ############################
