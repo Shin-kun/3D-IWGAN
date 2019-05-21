@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
-parser.add_argument('-n','--name', default='Test', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-n','--name', default='Test_DCGAN', help='The name of the current experiment, this will be used to create folders and save models.')
 parser.add_argument('-d','--data', default='data/voxels/faces', help ='The location for the object voxel models.' )
 parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
 parser.add_argument('-e','--epochs', default=7501, help ='The number of epochs to run for.', type=int)
@@ -45,52 +45,69 @@ eps         = tf.random_normal((args.batchsize, 200), 0, 1)
 net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance is used for error 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
-net_g, G_dec        = generator_20(z_x, batch_size= args.batchsize, is_train=True, reuse = False)
-net_g2, G_train     = generator_20(z, batch_size= args.batchsize, is_train = True, reuse=True)
+# this is for generating dcgan instead 
+net_g, G_dec         = generator_DCGAN(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_DCGAN(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake   = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True ,is_train = True, reuse= False)
-net_d2 , D_fake     = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse = True)
-net_d2, D_legit     = discriminator(real_models,  output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator_DCGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
+net_fake_d2, D_fake       = discriminator_DCGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator_DCGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+
+# Comment out in order to train DC-GAN
+#net_g, G_dec        = generator_20(z_x, batch_size= args.batchsize, is_train=True, reuse = False)
+#net_g2, G_train     = generator_20(z, batch_size= args.batchsize, is_train = True, reuse=True)
+
+#net_d, D_dec_fake   = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True ,is_train = True, reuse= False)
+#net_d2 , D_fake     = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse = True)
+#net_d2, D_legit     = discriminator(real_models,  output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 
 ########## Gradient penalty calculations ##############
-alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
-difference          = G_train - real_models
-inter               = []
-for i in range(args.batchsize): 
-    inter.append(difference[i] *alpha[i])
-inter = tf.unstack(inter)
-interpolates        = real_models + inter
-gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
-slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
-gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
-
+# alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
+# difference          = G_train - real_models
+# inter               = []
+# for i in range(args.batchsize): 
+#     inter.append(difference[i] *alpha[i])
+# inter = tf.unstack(inter)
+# interpolates        = real_models + inter
+# gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
+# slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
+# gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
 
 ########### Loss calculations #########################
-
-kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.square(means)))  
-recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
-d_loss              = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
-g_loss              = -tf.reduce_mean(D_fake)+(100)*recon_loss
-v_loss              = kl_loss + recon_loss 
-
-############ Optimization #############
 v_vars = tl.layers.get_variables_with_name('vae', True, True)
 g_vars = tl.layers.get_variables_with_name('gen', True, True)   
 d_vars = tl.layers.get_variables_with_name('dis', True, True)
+
+# REGULARIZATION
+d_reg  = tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(1e-6), d_vars)
+g_reg  = tf.contrib.layers.apply_regularization(tf.contrib.layers.l2_regularizer(1e-6), g_vars)
+
+kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.square(means)))  
+recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
+# computing for loss DCGAN
+
+d_real_loss = tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real")
+d_fake_loss = tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake")
+g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
+d_loss = tf.reduce_mean(0.5 * (d_fake_loss + d_real_loss))
+
+# d_loss              = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
+# g_loss              = -tf.reduce_mean(D_fake)+(100)*recon_loss
+v_loss              = kl_loss + recon_loss 
+
+############ Optimization #############
 
 net_g.print_params(False)
 net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(v_loss, var_list=v_vars)
-
-
+d_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5, beta2=0.9).minimize(d_loss + d_reg, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5, beta2=0.9).minimize(g_loss + g_reg, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5, beta2=0.9).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
-config = tf.ConfigProto(device_count={'GPU': 1}, log_device_placement=True)
+config = tf.ConfigProto(device_count={'GPU': 1})
 config.gpu_options.allow_growth = True
 sess=tf.Session(config=config)
 tl.utils.set_gpu_fraction(gpu_fraction=0.998)
@@ -111,7 +128,6 @@ else:
 files,valid = grab_files_images(args.images, args.data)
 valid_models, valid_images, _ = make_inputs_and_images(valid, args.data)
 
-
 if len(args.load_epoch)>1: 
     start = int(args.load_epoch)
 else: 
@@ -125,15 +141,30 @@ if  args.train:
         for idx in xrange(0, len(files)/args.batchsize):
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
+            
+            drop_g_dict         = tl.utils.dict_to_one( net_g.all_drop )
+            drop_d_dict         = tl.utils.dict_to_one( net_d.all_drop )
+            drop_g2_dict        = tl.utils.dict_to_one( net_g2.all_drop )
+            drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
+            drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
+            
+            feed_dict = {images: batch_images, real_models:models}
+            
+            feed_dict.update(drop_g_dict)
+            feed_dict.update(drop_d_dict)
+            feed_dict.update(drop_g2_dict)
+            feed_dict.update(drop_d2_dict)
+            feed_dict.update(drop_fake_d2_dict)
+
             #training the discriminator and the VAE's encoder 
-            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models: models}) 
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict=feed_dict) 
             track_d_loss.append(-errD)
             track_d_loss_iter.append(iter_counter)
         
-            
+        
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
-                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models })    
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict=feed_dict)    
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
         
@@ -156,5 +187,6 @@ if  args.train:
     #        render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
             save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) # same here but for 300 
 else:
-    # test data 
-    tl.utils.test(sess, net_g, acc=None, valid_images, valid_models, images, real_models, batch_size=args.batch_size, cost=None)
+    # TODO WORK on testing here
+    print("Testing")
+    
