@@ -138,24 +138,27 @@ iter_counter = iter_counter - (iter_counter %5)
 if  args.train:
     for epoch in range(start, args.epochs):
         random.shuffle(files)
+            
+        feed_dict = {}
+        drop_g_dict         = tl.utils.dict_to_one( net_g.all_drop )
+        drop_d_dict         = tl.utils.dict_to_one( net_d.all_drop )
+        drop_g2_dict        = tl.utils.dict_to_one( net_g2.all_drop )
+        drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
+        drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
+        feed_dict.update(drop_g_dict)
+        feed_dict.update(drop_d_dict)
+        feed_dict.update(drop_g2_dict)
+        feed_dict.update(drop_d2_dict)
+        feed_dict.update(drop_fake_d2_dict)
+
         for idx in xrange(0, len(files)/args.batchsize):
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
             
-            drop_g_dict         = tl.utils.dict_to_one( net_g.all_drop )
-            drop_d_dict         = tl.utils.dict_to_one( net_d.all_drop )
-            drop_g2_dict        = tl.utils.dict_to_one( net_g2.all_drop )
-            drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
-            drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
+            feed_dict["images"] = batch_images
+            feed_dict["real_models"] = models
+            # feed_dict = {images: batch_images, real_models:models}
             
-            feed_dict = {images: batch_images, real_models:models}
-            
-            feed_dict.update(drop_g_dict)
-            feed_dict.update(drop_d_dict)
-            feed_dict.update(drop_g2_dict)
-            feed_dict.update(drop_d2_dict)
-            feed_dict.update(drop_fake_d2_dict)
-
             #training the discriminator and the VAE's encoder 
             errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict=feed_dict) 
             track_d_loss.append(-errD)
@@ -177,11 +180,13 @@ if  args.train:
             save_networks(checkpoint_dir,sess, net_g, net_d, epoch, net_m,net_s)
         #saving generated objects
         if np.mod(epoch, args.sample) == 0:
-            models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict={images:batch_images})       
+            del feed_dict["real_models"]
+            models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict=feed_dict)       
             save_voxels(save_dir, models, epoch, recon_models )
         #saving learning info 
         if np.mod(epoch, args.graph) == 0: 
-            r_loss = sess.run([recon_loss], feed_dict={images:batch_images, real_models: models})
+            feed_dict["real_models"] = models
+            r_loss = sess.run([recon_loss], feed_dict=feed_dict)
             track_valid_loss.append(r_loss[0])
             track_valid_loss_iter.append(iter_counter)
     #        render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
