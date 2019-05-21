@@ -155,8 +155,8 @@ if  args.train:
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
             
-            feed_dict["images"] = batch_images
-            feed_dict["real_models"] = models
+            feed_dict[images] = batch_images
+            feed_dict[real_models] = models
             # feed_dict = {images: batch_images, real_models:models}
             
             #training the discriminator and the VAE's encoder 
@@ -180,12 +180,14 @@ if  args.train:
             save_networks(checkpoint_dir,sess, net_g, net_d, epoch, net_m,net_s)
         #saving generated objects
         if np.mod(epoch, args.sample) == 0:
-            del feed_dict["real_models"]
+            del feed_dict[real_models]
+            feed_dict[images] = batch_images
             models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict=feed_dict)       
             save_voxels(save_dir, models, epoch, recon_models )
         #saving learning info 
         if np.mod(epoch, args.graph) == 0: 
-            feed_dict["real_models"] = models
+            feed_dict[real_models] = models
+            feed_dict[images] = batch_images
             r_loss = sess.run([recon_loss], feed_dict=feed_dict)
             track_valid_loss.append(r_loss[0])
             track_valid_loss_iter.append(iter_counter)
