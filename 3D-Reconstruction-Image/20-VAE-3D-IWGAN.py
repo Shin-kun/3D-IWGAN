@@ -24,7 +24,7 @@ parser.add_argument('-save', default= 5, help='How often the network models are 
 parser.add_argument('-graph', default= 5, help='How often the discriminator loss and the reconstruction loss graphs are saved.', type= int)
 parser.add_argument('-l', '--load', default= False, help='Indicates if a previously loaded model should be loaded.', action = 'store_true')
 parser.add_argument('-le', '--load_epoch', default= '', help='The epoch to number to be loaded from.', type=str)
-parser.add_argument('-t' '--train' default=False, help='Indicates if model is already trained', action='store_true')
+parser.add_argument('-t', '--train', default=False, help='Indicates if model is already trained', action='store_true')
 args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name +'/'
