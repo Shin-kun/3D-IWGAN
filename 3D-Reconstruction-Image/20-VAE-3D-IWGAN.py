@@ -191,7 +191,7 @@ if  args.train:
             r_loss = sess.run([recon_loss], feed_dict=feed_dict)
             track_valid_loss.append(r_loss[0])
             track_valid_loss_iter.append(iter_counter)
-    #        render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
+            render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
             save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) # same here but for 300 
 else:
     # TODO WORK on testing here

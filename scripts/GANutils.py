@@ -195,21 +195,21 @@ def load_values(save_dir, recon = False, valid = False):
 def render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter = None, track_recon_loss=None, track_valid_loss_iter=None, track_valid_loss=None): 
     if not os.path.exists(save_dir+'/plots/'):
         os.makedirs(save_dir+'/plots/')
-    if track_recon_loss is not None:
-        if len(track_recon_loss)>51: 
-            smoothed_recon = savitzky_golay(track_recon_loss, 51, 3)
-            plt.plot(track_recon_loss_iter, track_recon_loss,color='blue') 
-            plt.plot(track_recon_loss_iter,smoothed_recon , color = 'red')
-            if track_valid_loss is not None:
-                plt.plot(track_valid_loss_iter, track_valid_loss ,color='green')
-            plt.savefig(save_dir+'/plots/recon_' + str(epoch)+'.png' )
-            plt.clf()
-    if len(track_d_loss)> 51: 
-        smoothed_d_loss = savitzky_golay(track_d_loss, 51, 3)
-        plt.plot(track_d_loss_iter, track_d_loss)
-        plt.plot(track_d_loss_iter, smoothed_d_loss, color = 'red')
-        plt.savefig(save_dir+'/plots/' + str(epoch)+'.png' )
-        plt.clf()
+    # if track_recon_loss is not None:
+    #     if len(track_recon_loss)>51: 
+    #         smoothed_recon = savitzky_golay(track_recon_loss, 51, 3)
+    #         plt.plot(track_recon_loss_iter, track_recon_loss,color='blue') 
+    #         plt.plot(track_recon_loss_iter,smoothed_recon , color = 'red')
+    #         if track_valid_loss is not None:
+    #             plt.plot(track_valid_loss_iter, track_valid_loss ,color='green')
+    #         plt.savefig(save_dir+'/plots/recon_' + str(epoch)+'.png' )
+    #         plt.clf()
+    # if len(track_d_loss)> 51: 
+    #     smoothed_d_loss = savitzky_golay(track_d_loss, 51, 3)
+    #     plt.plot(track_d_loss_iter, track_d_loss)
+    #     plt.plot(track_d_loss_iter, smoothed_d_loss, color = 'red')
+    #     plt.savefig(save_dir+'/plots/' + str(epoch)+'.png' )
+    #     plt.clf()
 
 def save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter = None, track_recon_loss=None, track_valid_loss_iter=None, track_valid_loss=None):
     np.save(save_dir+'/plots/track_d_loss_iter', track_d_loss_iter)
