@@ -52,6 +52,7 @@ net_g2, G_train      = generator_DCGAN(z, batch_size=args.batchsize, is_train=Tr
 net_d, D_dec_fake    = discriminator_DCGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
 net_fake_d2, D_fake       = discriminator_DCGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
 net_d2, D_legit      = discriminator_DCGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+net_eval_d2, D_eval  = discriminator_DCGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= False, reuse = True)
 
 # Comment out in order to train DC-GAN
 #net_g, G_dec        = generator_20(z_x, batch_size= args.batchsize, is_train=True, reuse = False)
@@ -136,6 +137,7 @@ logging.debug(len(files))
 iter_counter = iter_counter - (iter_counter %5)
 
 if  args.train:
+    Train_Dis = True
     for epoch in range(start, args.epochs):
         random.shuffle(files)
             
@@ -146,17 +148,22 @@ if  args.train:
             # feed_dict = {images: batch_images, real_models:models}
             
             #training the discriminator and the VAE's encoder 
-            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models}) 
+            if Train_Dis:
+                errD,_,errV,_,r_loss, ones = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss, D_legit] ,feed_dict={images: batch_images, real_models:models})
             track_d_loss.append(-errD)
             track_d_loss_iter.append(iter_counter)
         
+            else:
+                ones = sess.run([D_eval], feed_dict={real_models:models})
         
             #training the gen / decoder and the encoder 
-            if iter_counter % 5 ==0:
-                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+            # if iter_counter % 5 ==0:
+            errG,_,errV,_,r_loss, zeros= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss, D_dec_fake], feed_dict={images: batch_images, real_models:models})
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
         
+            Train_Dis = (cal_acc(zeros,ones)<0.95)# only train discriminator at certain level of accuracy 
+
             logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
             iter_counter += 1
             sys.stdout.flush()
