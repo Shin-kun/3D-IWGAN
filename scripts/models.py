@@ -105,7 +105,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_1 = tl.layers.DenseLayer(net_0, 
 			n_units= gf_dim*forth*forth*forth,
 			W_init = tf.random_normal_initializer(stddev=0.02),
-			act=tf.nn.relu,
+			act=tf.identity,
 			name='g/net_1/dense')
 		net_1 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_1/reshape')
 		net_1 = tl.layers.BatchNormLayer(net_1, 
@@ -152,16 +152,36 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 		# net_drop_2 = tl.layers.DropoutLayer(net_2, keep=keep_prob, name='dd/net_2/drop', is_train= is_train)
 		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, alpha=0.2, name='d/net_2/lrelu')
 
-
-		net_3 = Conv3D(net_2, df_dim*4, '3', batch_norm = not improved, is_train = is_train)
+		b1 = tl.layers.BatchNormLayer(net_2,
+			is_train=is_train,
+			gamma_init=tf.random_normal_initializer(1., 0.02), 
+			name='d/b1/batch_norm'
+		)
+		b1.outputs = tf.nn.leaky_relu(b1.outputs, alpha=0.2, name='d/b1/lrelu')
+		
+		net_3 = Conv3D(b1, df_dim*4, '3', batch_norm = not improved, is_train = is_train)
 		# net_drop_3 = tl.layers.DropoutLayer(net_3, keep=keep_prob, name='d/net_3/drop', is_train = is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, alpha=0.2, name='d/net_3/lrelu')
 
-		net_4 = Conv3D(net_3, df_dim*8, '4', batch_norm = not improved, is_train = is_train)
+		b2 = tl.layers.BatchNormLayer(net_3,
+			is_train=is_train,
+			gamma_init=tf.random_normal_initializer(1., 0.02), 
+			name='d/b2/batch_norm'
+		)
+		b2.outputs = tf.nn.leaky_relu(b2.outputs, alpha=0.2, name='d/b2/lrelu')
+		
+		net_4 = Conv3D(b2, df_dim*8, '4', batch_norm = not improved, is_train = is_train)
 		# net_drop_4 = tl.layers.DropoutLayer(net_4, keep=keep_prob, name='dd/net_4/drop', is_train= is_train)
 		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='d/net_4/lrelu')
 
-		net_5 = FlattenLayer(net_4, name='d/net_5/flatten')
+		b3 = tl.layers.BatchNormLayer(net_4,
+			is_train=is_train,
+			gamma_init=tf.random_normal_initializer(1., 0.02), 
+			name='d/b3/batch_norm'
+		)
+		b3.outputs = tf.nn.leaky_relu(b3.outputs, alpha=0.2, name='d/b3/lrelu')
+		
+		net_5 = FlattenLayer(b3, name='d/net_5/flatten')
 		net_5 = tl.layers.DenseLayer(net_5, 
 			n_units=output_units,
 			act=tf.nn.sigmoid,
