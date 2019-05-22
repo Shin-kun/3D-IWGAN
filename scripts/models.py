@@ -184,10 +184,10 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 		net_5 = FlattenLayer(b3, name='d/net_5/flatten')
 		net_5 = tl.layers.DenseLayer(net_5, 
 			n_units=output_units,
-			act=tf.nn.sigmoid,
 			W_init = tf.random_normal_initializer(stddev=0.02),
 			name='d/net_5/dense')
 
+		net_5.outputs = tf.nn.sigmoid(net_5.outputs)
 	return net_5, net_5.outputs
 
 def discriminator(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
