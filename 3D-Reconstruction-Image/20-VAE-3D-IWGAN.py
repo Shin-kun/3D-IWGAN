@@ -148,16 +148,16 @@ if  args.train:
             # feed_dict = {images: batch_images, real_models:models}
             
             #training the discriminator and the VAE's encoder 
-            if iter_counter % 5 ==0:
-                errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})
             track_d_loss.append(-errD)
             track_d_loss_iter.append(iter_counter)
         
             #training the gen / decoder and the encoder 
-            errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
-            track_recon_loss.append(r_loss)
-            track_recon_loss_iter.append(iter_counter)
-        
+            if iter_counter % 5 ==0:
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+                track_recon_loss.append(r_loss)
+                track_recon_loss_iter.append(iter_counter)
+
             logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
             iter_counter += 1
             sys.stdout.flush()
