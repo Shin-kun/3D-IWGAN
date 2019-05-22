@@ -87,8 +87,8 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # computing for loss DCGAN
 
 d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real"))
-d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
-g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
+d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_dec_fake),  D_dec_fake,  name="loss_d_fake"))
+g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_dec_fake), D_dec_fake, name="g_loss"))
 d_loss = d_fake_loss + d_real_loss
 
 # d_loss              = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
@@ -153,8 +153,7 @@ if  args.train:
         
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
-                for _ in range(2):
-                    errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
                 track_recon_loss.append(r_loss)
                 track_recon_loss_iter.append(iter_counter)
 
