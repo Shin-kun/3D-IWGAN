@@ -89,8 +89,8 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 
 d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real"))
 d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
-g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
-d_loss = d_fake_loss + d_real_loss
+g_loss = -tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
+d_loss = -(d_fake_loss + d_real_loss)
 
 # d_loss              = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
 # g_loss              = -tf.reduce_mean(D_fake)+(100)*recon_loss
