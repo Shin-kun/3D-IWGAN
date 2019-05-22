@@ -105,7 +105,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_1 = tl.layers.DenseLayer(net_0, 
 			n_units= gf_dim*forth*forth*forth,
 			W_init = tf.random_normal_initializer(stddev=0.02),
-			act=tf.nn.leaky_relu,
+			act=tf.nn.relu,
 			name='g/net_1/dense')
 		net_1 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_1/reshape')
 		net_1 = tl.layers.BatchNormLayer(net_1, 
