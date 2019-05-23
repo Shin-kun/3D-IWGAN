@@ -86,13 +86,13 @@ kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.squar
 recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # computing for loss DCGAN
 
-# d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real"))
-# d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
-# g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
-# d_loss = d_fake_loss + d_real_loss
+d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit*(1.0-0.0065), name="loss_d_real"))
+d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
+g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
+d_loss = d_fake_loss + d_real_loss
 
-d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
-g_loss = -tf.reduce_mean(tf.log(D_fake))
+# d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
+# g_loss = -tf.reduce_mean(tf.log(D_fake))
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
@@ -102,9 +102,9 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 0.0002, beta1=0.5).minimize(v_loss, var_list=v_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(g_loss, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
 config = tf.ConfigProto(device_count={'GPU': 1})
@@ -139,23 +139,32 @@ if  args.train:
     Train_Dis = True
     for epoch in range(start, args.epochs):
         random.shuffle(files)
-            
+
+        feed_dict = {}
+        drop_d_dict         = tl.utils.dict_to_one( net_d.all_drop )
+        drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
+        drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
+        feed_dict.update(drop_d_dict)
+        feed_dict.update(drop_d2_dict)
+        feed_dict.update(drop_fake_d2_dict)
+
         for idx in xrange(0, len(files)/args.batchsize):
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
             
             # feed_dict = {images: batch_images, real_models:models}
-            
+            feed_dict[images] = batch_images
+            feed_dict[real_models] = models
             #training the discriminator and the VAE's encoder 
-            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict=feed_dict)
             track_d_loss.append(-errD)
             track_d_loss_iter.append(iter_counter)
         
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
-                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
-                track_recon_loss.append(r_loss)
-                track_recon_loss_iter.append(iter_counter)
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict=feed_dict)
+            track_recon_loss.append(r_loss)
+            track_recon_loss_iter.append(iter_counter)
 
             logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
             iter_counter += 1

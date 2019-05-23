@@ -145,11 +145,10 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 		net_0 = tl.layers.InputLayer(inputs, name='d/net_0/in')
 
 		net_1 = Conv3D(net_0, df_dim, '1', f_dim_in=1, batch_norm = False)
-		# net_drop_1 = tl.layers.DropoutLayer(net_1, keep=keep_prob, name='d/net_1/drop', is_train = is_train)
+		net_1 = tl.layers.DropoutLayer(net_1, keep=keep_prob, name='d/net_1/drop', is_train = is_train)
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, alpha=0.2, name='d/net_1/lrelu')
 
 		net_2 = Conv3D(net_1, df_dim*2, '2', batch_norm = not improved, is_train = is_train)
-		# net_drop_2 = tl.layers.DropoutLayer(net_2, keep=keep_prob, name='dd/net_2/drop', is_train= is_train)
 		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, alpha=0.2, name='d/net_2/lrelu')
 
 		b1 = tl.layers.BatchNormLayer(net_2,
@@ -158,9 +157,9 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 			name='d/b1/batch_norm'
 		)
 		b1.outputs = tf.nn.leaky_relu(b1.outputs, alpha=0.2, name='d/b1/lrelu')
+		b1 = tl.layers.DropoutLayer(b1, keep=keep_prob, name='dd/net_2/drop', is_train= is_train)
 		
 		net_3 = Conv3D(b1, df_dim*4, '3', batch_norm = not improved, is_train = is_train)
-		# net_drop_3 = tl.layers.DropoutLayer(net_3, keep=keep_prob, name='d/net_3/drop', is_train = is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, alpha=0.2, name='d/net_3/lrelu')
 
 		b2 = tl.layers.BatchNormLayer(net_3,
@@ -169,9 +168,9 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 			name='d/b2/batch_norm'
 		)
 		b2.outputs = tf.nn.leaky_relu(b2.outputs, alpha=0.2, name='d/b2/lrelu')
+		b2 = tl.layers.DropoutLayer(b2, keep=keep_prob, name='d/net_3/drop', is_train = is_train)
 		
 		net_4 = Conv3D(b2, df_dim*8, '4', batch_norm = not improved, is_train = is_train)
-		# net_drop_4 = tl.layers.DropoutLayer(net_4, keep=keep_prob, name='dd/net_4/drop', is_train= is_train)
 		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='d/net_4/lrelu')
 
 		b3 = tl.layers.BatchNormLayer(net_4,
@@ -180,6 +179,7 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 			name='d/b3/batch_norm'
 		)
 		b3.outputs = tf.nn.leaky_relu(b3.outputs, alpha=0.2, name='d/b3/lrelu')
+		b3 = tl.layers.DropoutLayer(b3, keep=keep_prob, name='dd/net_4/drop', is_train= is_train)
 		
 		net_5 = FlattenLayer(b3, name='d/net_5/flatten')
 		net_5 = tl.layers.DenseLayer(net_5, 
