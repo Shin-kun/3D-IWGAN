@@ -63,16 +63,16 @@ net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_siz
 #net_d2, D_legit     = discriminator(real_models,  output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 
 ########## Gradient penalty calculations ##############
-# alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
-# difference          = G_train - real_models
-# inter               = []
-# for i in range(args.batchsize): 
-#     inter.append(difference[i] *alpha[i])
-# inter = tf.unstack(inter)
-# interpolates        = real_models + inter
-# gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
-# slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
-# gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
+alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
+difference          = G_train - real_models
+inter               = []
+for i in range(args.batchsize): 
+    inter.append(difference[i] *alpha[i])
+inter = tf.unstack(inter)
+interpolates        = real_models + inter
+gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
+slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
+gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
 
 ########### Loss calculations #########################
 v_vars = tl.layers.get_variables_with_name('vae', True, True)
@@ -89,8 +89,8 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 
 d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real"))
 d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
-g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
-d_loss = d_fake_loss + d_real_loss
+g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss")) + (100)*recon_loss
+d_loss = d_fake_loss + d_real_loss + 10.*gradient_penalty
 
 # d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
 # g_loss = -tf.reduce_mean(tf.log(D_fake))
@@ -103,9 +103,9 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(v_loss, var_list=v_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta=0.9).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta=0.9).minimize(g_loss, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta=0.9).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
 config = tf.ConfigProto(device_count={'GPU': 1})
