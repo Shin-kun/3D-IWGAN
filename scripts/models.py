@@ -95,7 +95,7 @@ def generator_32(inputs, is_train=True, reuse=False, batch_size = 128, sig = Fal
 def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 	output_size, half, forth = 20, 10, 5 
 	gf_dim = 128 # Dimension of gen filters in first conv layer
-	keep_prob = 0.6
+	keep_prob = 0.50
 
 	with tf.variable_scope("gen", reuse=reuse) as vs:
 		tl.layers.set_name_reuse(reuse)
@@ -112,6 +112,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 			is_train=is_train, 
 			gamma_init=tf.random_normal_initializer(1., 0.02), 
 			name='g/net_1/batch_norm')
+		net_1 = tl.layers.DropoutLayer(net_1, keep=keep_prob, name='g/net_1/drop', is_train = is_train)
 		net_1.outputs = tf.nn.relu(net_1.outputs, name='g/net_1/relu')
 
 		net_2 = Deconv(net_1, gf_dim, half, '2', batch_size)
@@ -119,6 +120,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 			is_train=is_train,
 			gamma_init=tf.random_normal_initializer(1., 0.02), 
 			name='g/net_2/batch_norm')
+		net_2 = tl.layers.DropoutLayer(net_2, keep=keep_prob, name='g/net_2/drop', is_train = is_train)
 		net_2.outputs = tf.nn.relu(net_2.outputs, name='g/net_2/relu')
 
 		net_3 = Deconv(net_2, gf_dim/2, output_size, '3', batch_size)
@@ -126,6 +128,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 			is_train=is_train,
 			gamma_init=tf.random_normal_initializer(1., 0.02), 
 			name='g/net_3/batch_norm')
+		net_3 = tl.layers.DropoutLayer(net_3, keep=keep_prob, name='g/net_3/drop', is_train = is_train)
 		net_3.outputs = tf.nn.relu(net_3.outputs, name='g/net_3/relu')
 
 		net_4 = Deconv(net_3, gf_dim/4, output_size, '4', batch_size, f_dim_out = 1, stride = 1) 
@@ -135,7 +138,7 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		return net_4, net_4.outputs
 
 def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
-	keep_prob = 0.25
+	keep_prob = 0.50
 	inputs = tf.reshape(inputs, [batch_size, output_size, output_size, output_size,1])
 	df_dim = output_size
 

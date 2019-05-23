@@ -87,7 +87,7 @@ kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.squar
 recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # computing for loss DCGAN
 
-d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit*(1.0-0.0065), name="loss_d_real"))
+d_real_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_legit), D_legit, name="loss_d_real"))
 d_fake_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.zeros_like(D_fake),  D_fake,  name="loss_d_fake"))
 g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss"))
 d_loss = d_fake_loss + d_real_loss
@@ -103,9 +103,9 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(v_loss, var_list=v_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(g_loss, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 0.00025, beta1=0.5).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
 config = tf.ConfigProto(device_count={'GPU': 1})
@@ -146,6 +146,9 @@ if  args.train:
         drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
         drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
         drop_eval           = tl.utils.dict_to_one( net_eval.all_drop )
+        
+        drop_g              = tl.utils.dict_to_one( net_g.all_drop )
+        drop_g2             = tl.utils.dict_to_one( net_g2.all_drop )
         #feed_dict.update(drop_d_dict)
         #feed_dict.update(drop_d2_dict)
         #feed_dict.update(drop_fake_d2_dict)
@@ -155,13 +158,12 @@ if  args.train:
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
             
-	    feed_dict.update(drop_d_dict)
-	    feed_dict.update(drop_d2_dict)
-	    feed_dict.update(drop_fake_d2_dict)
-	    feed_dict.update(drop_eval)
-
-
-
+            feed_dict.update(drop_d_dict)
+            feed_dict.update(drop_d2_dict)
+            feed_dict.update(drop_fake_d2_dict)
+            feed_dict.update(drop_eval)
+            feed_dict.update(drop_g)
+            feed_dict.update(drop_g2)
             # feed_dict = {images: batch_images, real_models:models}
             feed_dict[images] = batch_images
             feed_dict[real_models] = models
@@ -187,12 +189,18 @@ if  args.train:
             iter_counter += 1
             sys.stdout.flush()
 
+        feed_dict.update(drop_g)
+        feed_dict.update(drop_g2)
+
         #saving the model 
         if np.mod(epoch, args.save) == 0:
             save_networks(checkpoint_dir,sess, net_g, net_d, epoch, net_m,net_s)
         #saving generated objects
         if np.mod(epoch, args.sample) == 0:
-            models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict={images: batch_images})       
+            del feed_dict[real_models]
+            feed_dict[images] = batch_images
+
+            models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict=feed_dict)       
             save_voxels(save_dir, models, epoch, recon_models )
         #saving learning info 
         if np.mod(epoch, args.graph) == 0: 
