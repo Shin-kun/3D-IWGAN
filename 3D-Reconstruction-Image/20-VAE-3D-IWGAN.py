@@ -52,7 +52,7 @@ net_g2, G_train      = generator_DCGAN(z, batch_size=args.batchsize, is_train=Tr
 net_d, D_dec_fake    = discriminator_DCGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
 net_fake_d2, D_fake       = discriminator_DCGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
 net_d2, D_legit      = discriminator_DCGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
-net_eval, D_eval      = dis(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
+net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
 #net_g, G_dec        = generator_20(z_x, batch_size= args.batchsize, is_train=True, reuse = False)
@@ -146,15 +146,22 @@ if  args.train:
         drop_d2_dict        = tl.utils.dict_to_one( net_d2.all_drop )
         drop_fake_d2_dict   = tl.utils.dict_to_one( net_fake_d2.all_drop )
         drop_eval           = tl.utils.dict_to_one( net_eval.all_drop )
-        feed_dict.update(drop_d_dict)
-        feed_dict.update(drop_d2_dict)
-        feed_dict.update(drop_fake_d2_dict)
-        feed.dict.update(drop_eval)
+        #feed_dict.update(drop_d_dict)
+        #feed_dict.update(drop_d2_dict)
+        #feed_dict.update(drop_fake_d2_dict)
+        #feed_dict.update(drop_eval)
 
         for idx in xrange(0, len(files)/args.batchsize):
             file_batch = files[idx*args.batchsize:(idx+1)*args.batchsize]
             models, batch_images, start_time = make_inputs_and_images(file_batch, args.data)
             
+	    feed_dict.update(drop_d_dict)
+	    feed_dict.update(drop_d2_dict)
+	    feed_dict.update(drop_fake_d2_dict)
+	    feed_dict.update(drop_eval)
+
+
+
             # feed_dict = {images: batch_images, real_models:models}
             feed_dict[images] = batch_images
             feed_dict[real_models] = models

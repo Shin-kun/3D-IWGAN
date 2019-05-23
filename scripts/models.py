@@ -148,7 +148,7 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 		net_1 = tl.layers.DropoutLayer(net_1, keep=keep_prob, name='d/net_1/drop', is_train = is_train)
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, alpha=0.2, name='d/net_1/lrelu')
 
-		b1 = tl.layers.BatchNormLayer(net_2,
+		b1 = tl.layers.BatchNormLayer(net_1,
 			is_train=is_train,
 			gamma_init=tf.random_normal_initializer(1., 0.02), 
 			name='d/net_1/batch_norm'
