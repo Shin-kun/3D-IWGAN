@@ -204,7 +204,9 @@ if  args.train:
             save_voxels(save_dir, models, epoch, recon_models )
         #saving learning info 
         if np.mod(epoch, args.graph) == 0: 
-            r_loss = sess.run([recon_loss], feed_dict={images: batch_images, real_models:models})
+            feed_dict[real_models] = models
+            feed_dict[images] = batch_images
+            r_loss = sess.run([recon_loss], feed_dict=feed_dict)
             track_valid_loss.append(r_loss[0])
             track_valid_loss_iter.append(iter_counter)
             render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
