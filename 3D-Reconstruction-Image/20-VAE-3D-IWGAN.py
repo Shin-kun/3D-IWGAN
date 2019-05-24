@@ -179,12 +179,13 @@ if  args.train:
             # else:
                 # ones = sess.run([D_eval], feed_dict={real_models: models})
             
-            track_d_loss.append(-errD)
-            track_d_loss_iter.append(iter_counter)
         
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
                 errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})            
+                track_d_loss.append(-errD)
+                track_d_loss_iter.append(iter_counter)
+
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
 
