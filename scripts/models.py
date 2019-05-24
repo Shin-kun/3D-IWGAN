@@ -94,7 +94,7 @@ def generator_32(inputs, is_train=True, reuse=False, batch_size = 128, sig = Fal
 		
 		return net_5, net_5.outputs
 
-def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
+def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 	output_size, half, forth = 20, 10, 5 
 	gf_dim = 128 # Dimension of gen filters in first conv layer
 	keep_prob = 0.50
@@ -108,26 +108,34 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 			n_units= gf_dim*forth*forth*forth,
 			W_init = tf.random_normal_initializer(stddev=0.02),
 			name='g/net_1/dense')
-		net_1 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_1/reshape')
-		net_1 = tl.layers.BatchNormLayer(net_1, 
-			is_train=is_train, 
-			gamma_init=tf.random_normal_initializer(1., 0.02), 
-			name='g/net_1/batch_norm')
+		net_1 = tl.layers.BatchNormLayer(net_1, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_1/batch_norm')
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, name='g/net_1/lrelu')
 
-		net_2 = Deconv(net_1, gf_dim, half, '2', batch_size, batch_norm=True, is_train=is_train)
+		net_2 = tl.layers.DenseLayer(net_1, n_units= gf_dim*half*half, W_init = tf.random_normal_initializer(stddev=0.02), name='g/net_2/dense')
+		net_2 = tl.layers.BatchNormLayer(net_2, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_2/batch_norm')
 		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, name='g/net_2/lrelu')
-
-		net_3 = Deconv(net_2, gf_dim/2, output_size, '3', batch_size, batch_norm=True, is_train=is_train)
+		net_2 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_2/reshape')
+		# here
+		net_3 = Deconv(net_2, gf_dim, half, '3', batch_size, batch_norm=True, is_train=is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, name='g/net_3/lrelu')
 
-		net_4 = Deconv(net_3, gf_dim/4, output_size, '4', batch_size, f_dim_out = 1, stride = 1, is_train=is_train) 
-		net_4.outputs = tf.reshape(net_4.outputs,[batch_size,output_size,output_size,output_size], name='g/net_4/reshape')
-		net_4.outputs = tf.nn.tanh(net_4.outputs, name='g/net_4/tanh')
+		net_4 = tl.layers.Conv3dLayer(net_3, shape=[half, half, half, gf_dim/2, gf_dim], W_init = tf.random_normal_initializer(stddev=0.02), strides=[1, 1, 1, 1, 1], name= 'g/net_4/conv')
+		net_4 = tl.layers.BatchNormLayer(net_4, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_4/batch_norm')
+		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, name='g/net_4/lrelu')
 
-		return net_4, net_4.outputs
+		net_5 = Deconv(net_4, gf_dim/2, output_size, '5', batch_size, batch_norm=True, is_train=is_train)
+		net_5 = tl.layers.BatchNormLayer(net_5, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_5/batch_norm')
+		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, name='g/net_5/lrelu')
 
-def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
+		net_6 = Deconv(net_5, gf_dim/4, output_size, '6', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
+		net_6 = tl.layers.BatchNormLayer(net_6, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_6/batch_norm')
+
+		net_6.outputs = tf.reshape(net_6.outputs,[batch_size,output_size,output_size,output_size], name='g/net_6/reshape')
+		net_6.outputs = tf.nn.tanh(net_6.outputs, name='g/net_6/tanh')
+
+		return net_6, net_6.outputs
+
+def discriminator_LSGAN(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
 	keep_prob = 0.50
 	inputs = tf.reshape(inputs, [batch_size, output_size, output_size, output_size,1])
 	df_dim = output_size
@@ -154,9 +162,16 @@ def discriminator_DCGAN(inputs ,output_size, improved = False, VAE_loss = False,
 			n_units=output_units,
 			W_init = tf.random_normal_initializer(stddev=0.02),
 			name='d/net_5/dense')
+		net_5 = tl.layers.BatchNormLayer(net_5, is_train=is_train, name='g/net_5/batch_norm')
+		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, alpha=0.2, name='d/net_5/lrelu')
+		
+		net_6 = tl.layers.DenseLayer(net_5, 
+			n_units=1,
+			W_init = tf.random_normal_initializer(stddev=0.02),
+			name='d/net_6/dense')
 
-		net_5.outputs = tf.nn.sigmoid(net_5.outputs)
-	return net_5, net_5.outputs
+		net_6.outputs = tf.nn.sigmoid(net_6.outputs)
+	return net_6, net_6.outputs
 
 def discriminator(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
 	inputs = tf.reshape(inputs,[batch_size,output_size,output_size,output_size,1])

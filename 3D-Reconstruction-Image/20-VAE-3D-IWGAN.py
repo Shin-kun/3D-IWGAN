@@ -46,12 +46,12 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_DCGAN(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
-net_g2, G_train      = generator_DCGAN(z, batch_size=args.batchsize, is_train=True, reuse=True)
+net_g, G_dec         = generator_LSGAN(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_LSGAN(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake    = discriminator_DCGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator_DCGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator_DCGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator_LSGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator_LSGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator_LSGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
