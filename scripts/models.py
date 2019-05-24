@@ -116,7 +116,7 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, name='g/net_2/lrelu')
 		net_2 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_2/reshape')
 		# here
-		net_3 = Deconv(net_2, gf_dim, half, '3', batch_size, batch_norm=True, is_train=is_train)
+		net_3 = Deconv(net_2, gf_dim, forth, '3', batch_size, batch_norm=True, is_train=is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, name='g/net_3/lrelu')
 
 		net_4 = tl.layers.Conv3dLayer(net_3, shape=[half, half, half, gf_dim/2, gf_dim], W_init = tf.random_normal_initializer(stddev=0.02), strides=[1, 1, 1, 1, 1], name= 'g/net_4/conv')
