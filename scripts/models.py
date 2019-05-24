@@ -129,7 +129,7 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_6 = Deconv(net_5, gf_dim/2, forth, '6', batch_size,batch_norm=True, is_train=is_train)
 		net_6.outputs = tf.nn.leaky_relu(net_6.outputs, name='g/net_6/lrelu')
 
-		net_7 = Deconv(net_6, gf_dim/4, output_size, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
+		net_7 = Deconv(net_6, gf_dim/4, half, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
 
 		net_7.outputs = tf.reshape(net_7.outputs,[batch_size,output_size,output_size,output_size], name='g/net_7/reshape')
 		net_7.outputs = tf.nn.sigmoid(net_7.outputs, name='g/net_7/sigmoid')
