@@ -119,14 +119,7 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_3 = Deconv(net_2, gf_dim, forth, '3', batch_size, batch_norm=True, is_train=is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, name='g/net_3/lrelu')
 
-		net_4 = tl.layers.Conv3dLayer(net_3, shape=[half, half, half, gf_dim/2, gf_dim], W_init = tf.random_normal_initializer(stddev=0.02), strides=[1, 1, 1, 1, 1], name= 'g/net_4/conv')
-		net_4 = tl.layers.BatchNormLayer(net_4, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_4/batch_norm')
-		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, name='g/net_4/lrelu')
-
-		net_5 = Deconv(net_4, gf_dim, forth, '5', batch_size, batch_norm=True, is_train=is_train)
-		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, name='g/net_5/lrelu')
-
-		net_6 = Deconv(net_5, gf_dim/2, half, '6', batch_size,batch_norm=True, is_train=is_train)
+		net_6 = Deconv(net_3, gf_dim/2, half, '6', batch_size,batch_norm=True, is_train=is_train)
 		net_6.outputs = tf.nn.leaky_relu(net_6.outputs, name='g/net_6/lrelu')
 
 		net_7 = Deconv(net_6, gf_dim/4, half, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
