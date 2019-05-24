@@ -8,7 +8,7 @@ from tensorlayer.layers import *
 import random 
 from glob import glob
 
-def Deconv(inputs, f_dim_in, dim, net, batch_size, f_dim_out = None, stride = 2, batch_norm = False):
+def Deconv(inputs, f_dim_in, dim, net, batch_size, f_dim_out = None, stride = 2, batch_norm = False, is_train = True):
 	if f_dim_out is None: 
 		f_dim_out = f_dim_in/2 
 	layer =  tl.layers.DeConv3dLayer(inputs,
@@ -115,13 +115,13 @@ def generator_DCGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 			name='g/net_1/batch_norm')
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, name='g/net_1/lrelu')
 
-		net_2 = Deconv(net_1, gf_dim, half, '2', batch_size, batch_norm=True)
+		net_2 = Deconv(net_1, gf_dim, half, '2', batch_size, batch_norm=True, is_train=is_train)
 		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, name='g/net_2/lrelu')
 
-		net_3 = Deconv(net_2, gf_dim/2, output_size, '3', batch_size, batch_norm=True)
+		net_3 = Deconv(net_2, gf_dim/2, output_size, '3', batch_size, batch_norm=True, is_train=is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, name='g/net_3/lrelu')
 
-		net_4 = Deconv(net_3, gf_dim/4, output_size, '4', batch_size, f_dim_out = 1, stride = 1) 
+		net_4 = Deconv(net_3, gf_dim/4, output_size, '4', batch_size, f_dim_out = 1, stride = 1, is_train=is_train) 
 		net_4.outputs = tf.reshape(net_4.outputs,[batch_size,output_size,output_size,output_size], name='g/net_4/reshape')
 		net_4.outputs = tf.nn.tanh(net_4.outputs, name='g/net_4/tanh')
 
