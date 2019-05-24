@@ -126,7 +126,7 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_5 = Deconv(net_4, gf_dim, half, '5', batch_size, batch_norm=True, is_train=is_train)
 		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, name='g/net_5/lrelu')
 
-		net_6 = Deconv(net_5, gf_dim/2, output_size, '6', batch_size,batch_norm=True, is_train=is_train)
+		net_6 = Deconv(net_5, gf_dim/2, half, '6', batch_size,batch_norm=True, is_train=is_train)
 		net_6.outputs = tf.nn.leaky_relu(net_6.outputs, name='g/net_6/lrelu')
 
 		net_7 = Deconv(net_6, gf_dim/4, output_size, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
@@ -134,7 +134,7 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_7.outputs = tf.reshape(net_7.outputs,[batch_size,output_size,output_size,output_size], name='g/net_7/reshape')
 		net_7.outputs = tf.nn.sigmoid(net_7.outputs, name='g/net_7/sigmoid')
 
-		return net_6, net_6.outputs
+		return net_7, net_7.outputs
 
 def discriminator_LSGAN(inputs ,output_size, improved = False, VAE_loss = False, sig = False, is_train=True, reuse=False, batch_size=128, output_units= 1):
 	keep_prob = 0.50
