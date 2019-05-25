@@ -27,8 +27,8 @@ parser.add_argument('-le', '--load_epoch', default= '', help='The epoch to numbe
 parser.add_argument('-t', '--train', default=False, help='Indicates if model is already trained', action='store_true')
 args = parser.parse_args()
 
-checkpoint_dir = "checkpoint/" + args.name
-save_dir =  "savepoint/" + args.name
+checkpoint_dir = "checkpoint/" + args.name + "/"
+save_dir =  "savepoint/" + args.name + "/"
 output_size = 20 
 
 ######### make directories ############################
@@ -46,12 +46,12 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_LSGAN(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
-net_g2, G_train      = generator_LSGAN(z, batch_size=args.batchsize, is_train=True, reuse=True)
+net_g, G_dec         = generator_20(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_20(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake    = discriminator_LSGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator_LSGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator_LSGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
@@ -63,16 +63,16 @@ net_d2, D_legit      = discriminator_LSGAN(real_models, output_size, batch_size=
 #net_d2, D_legit     = discriminator(real_models,  output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 
 ########## Gradient penalty calculations ##############
-# alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
-# difference          = G_train - real_models
-# inter               = []
-# for i in range(args.batchsize): 
-#     inter.append(difference[i] *alpha[i])
-# inter = tf.unstack(inter)
-# interpolates        = real_models + inter
-# gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
-# slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
-# gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
+alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
+difference          = G_train - real_models
+inter               = []
+for i in range(args.batchsize): 
+    inter.append(difference[i] *alpha[i])
+inter = tf.unstack(inter)
+interpolates        = real_models + inter
+gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
+slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
+gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
 
 ########### Loss calculations #########################
 kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.square(means)))  
@@ -84,19 +84,19 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss")) + (100)*recon_loss
 # d_loss = d_fake_loss + d_real_loss + 10.*gradient_penalty
 
-logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
-logits_diff_fake_real = D_fake - tf.reduce_mean(D_real, axis=0, keepdims=True)
+# logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
+# logits_diff_fake_real = D_fake - tf.reduce_mean(D_real, axis=0, keepdims=True)
 
-d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
-d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
-d_loss = d_loss_real + d_loss_fake
+# d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
+# d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
+# d_loss = d_loss_real + d_loss_fake
 
-g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
-g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
-g_loss = g_loss_real + g_loss_fake
+# g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
+# g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
+# g_loss = g_loss_real + g_loss_fake
 
-# d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
-# g_loss = -tf.reduce_mean(tf.log(D_fake))
+d_loss = -tf.reduce_mean(D_legit) + -tf.reduce_mean(D_fake) + 10.*gradient_penalty
+g_loss = -tf.reduce_mean(D_fake) + (100)* recon_loss
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
@@ -132,17 +132,17 @@ else:
     track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, iter_counter  = [],[],[],[],[],[],0
   
 
-files,valid = grab_files_images(args.images, args.data)
-valid_models, valid_images, _ = make_inputs_and_images(valid, args.data)
-
 if len(args.load_epoch)>1: 
     start = int(args.load_epoch)
 else: 
     start = 0 
-logging.debug(len(files))
 iter_counter = iter_counter - (iter_counter %5)
 
 if  args.train:
+    files,valid = grab_files_images(args.images, args.data)
+    valid_models, valid_images, _ = make_inputs_and_images(valid, args.data)
+
+    logging.debug(len(files))
     Train_Dis = True
     for epoch in range(start, args.epochs):
         random.shuffle(files)
@@ -174,7 +174,10 @@ if  args.train:
             # feed_dict[images] = batch_images
             # feed_dict[real_models] = models
             #training the discriminator and the VAE's encoder 
-            errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})            
+            track_d_loss.append(-errD)
+            track_d_loss_iter.append(iter_counter)
+
             # if Train_Dis:
             # else:
                 # ones = sess.run([D_eval], feed_dict={real_models: models})
@@ -182,10 +185,8 @@ if  args.train:
         
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
-                errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})            
-                track_d_loss.append(-errD)
-                track_d_loss_iter.append(iter_counter)
-
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+                
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
 
