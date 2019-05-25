@@ -105,31 +105,25 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 		net_0 = tl.layers.InputLayer(inputs, name='g/net_0/in')
 
 		net_1 = tl.layers.DenseLayer(net_0, 
-			n_units= gf_dim*5*5,
+			n_units= gf_dim*forth*forth*forth,
 			W_init = tf.random_normal_initializer(stddev=0.02),
 			name='g/net_1/dense')
 		net_1 = tl.layers.BatchNormLayer(net_1, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_1/batch_norm')
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, name='g/net_1/lrelu')
-
-		net_2 = tl.layers.DenseLayer(net_1, n_units= gf_dim*forth*forth*forth, W_init = tf.random_normal_initializer(stddev=0.02), name='g/net_2/dense')
-		net_2 = tl.layers.BatchNormLayer(net_2, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_2/batch_norm')
-		net_2.outputs = tf.nn.leaky_relu(net_2.outputs, name='g/net_2/lrelu')
-		net_2 = tl.layers.ReshapeLayer(net_2, shape = [-1, forth, forth, forth, gf_dim], name='g/net_2/reshape')
+		
+		net_2 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_2/reshape')
+		
 		# here
 		net_3 = Deconv(net_2, gf_dim, half, '3', batch_size, batch_norm=True, is_train=is_train)
 		net_3.outputs = tf.nn.leaky_relu(net_3.outputs, name='g/net_3/lrelu')
 
-		net_4 = tl.layers.Conv3dLayer(net_3, shape=[half, half, half, gf_dim/2, gf_dim], W_init = tf.random_normal_initializer(stddev=0.02), strides=[1, 1, 1, 1, 1], name= 'g/net_4/conv')
-		net_4 = tl.layers.BatchNormLayer(net_4, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_4/batch_norm')
-		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, name='g/net_4/lrelu')
-
-		net_6 = Deconv(net_4, gf_dim, output_size, '6', batch_size,batch_norm=True, is_train=is_train)
+		net_6 = Deconv(net_3, gf_dim/2, output_size, '6', batch_size,batch_norm=True, is_train=is_train)
 		net_6.outputs = tf.nn.leaky_relu(net_6.outputs, name='g/net_6/lrelu')
 
-		net_7 = Deconv(net_6, gf_dim/2, output_size, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
+		net_7 = Deconv(net_6, gf_dim/4, output_size, '7', batch_size, f_dim_out = 1, stride = 2, is_train=is_train) 
 
 		net_7.outputs = tf.reshape(net_7.outputs,[batch_size,output_size,output_size,output_size], name='g/net_7/reshape')
-		net_7.outputs = tf.nn.sigmoid(net_7.outputs, name='g/net_7/sigmoid')
+		net_7.outputs = tf.nn.tanh(net_7.outputs, name='g/net_7/tanh')
 
 		return net_7, net_7.outputs
 
