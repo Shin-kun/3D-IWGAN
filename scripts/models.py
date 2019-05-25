@@ -104,12 +104,9 @@ def generator_LSGAN(inputs, is_train=True, reuse=False, batch_size = 128):
 
 		net_0 = tl.layers.InputLayer(inputs, name='g/net_0/in')
 
-		net_1 = tl.layers.DenseLayer(net_0, 
-			n_units= gf_dim*forth*forth*forth,
-			W_init = tf.random_normal_initializer(stddev=0.02),
-			name='g/net_1/dense')
-		net_1 = tl.layers.BatchNormLayer(net_1, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_1/batch_norm')
+		net_1 = tl.layers.DenseLayer(net_0, n_units = gf_dim*forth*forth*forth, W_init = tf.random_normal_initializer(stddev=0.02), act = tf.identity, name='g/net_1/dense')
 		net_1.outputs = tf.nn.leaky_relu(net_1.outputs, name='g/net_1/lrelu')
+		net_1 = tl.layers.BatchNormLayer(net_1, is_train=is_train, gamma_init=tf.random_normal_initializer(1., 0.02), name='g/net_1/batch_norm')
 		
 		net_2 = tl.layers.ReshapeLayer(net_1, shape = [-1, forth, forth, forth, gf_dim], name='g/net_2/reshape')
 		
