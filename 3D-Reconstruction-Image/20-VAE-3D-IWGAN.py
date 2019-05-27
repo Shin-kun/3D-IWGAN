@@ -14,11 +14,11 @@ import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
-parser.add_argument('-n','--name', default='Test_DCGAN', help='The name of the current experiment, this will be used to create folders and save models.')
-parser.add_argument('-d','--data', default='data/voxels/faces', help ='The location for the object voxel models.' )
+parser.add_argument('-n','--name', default='Test_3D_IWGAN', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-d','--data', default='data/voxels/face', help ='The location for the object voxel models.' )
 parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
-parser.add_argument('-e','--epochs', default=7501, help ='The number of epochs to run for.', type=int)
-parser.add_argument('-b','--batchsize', default=128, help ='The batch size.', type=int)
+parser.add_argument('-e','--epochs', default=4501, help ='The number of epochs to run for.', type=int)
+parser.add_argument('-b','--batchsize', default=256, help ='The batch size.', type=int)
 parser.add_argument('-sample', default= 5, help='How often generated obejcts are sampled and saved.', type= int)
 parser.add_argument('-save', default= 5, help='How often the network models are saved.', type= int)
 parser.add_argument('-graph', default= 5, help='How often the discriminator loss and the reconstruction loss graphs are saved.', type= int)
@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name + "/"
 save_dir =  "savepoint/" + args.name + "/"
-output_size = 20 
+output_size = 32
 
 ######### make directories ############################
 
@@ -46,8 +46,8 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_20(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
-net_g2, G_train      = generator_20(z, batch_size=args.batchsize, is_train=True, reuse=True)
+net_g, G_dec         = generator_32(z_x, batch_size=args.batchsize, is_train=True, reuse=False, sig=True)
+net_g2, G_train      = generator_32(z, batch_size=args.batchsize, is_train=True, reuse=True, sig=True)
 
 net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
 net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
@@ -95,8 +95,8 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
 # g_loss = g_loss_real + g_loss_fake
 
-d_loss = -tf.reduce_mean(D_legit) + -tf.reduce_mean(D_fake) + 10.*gradient_penalty
-g_loss = -tf.reduce_mean(D_fake) + (100)* recon_loss
+d_loss = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
+g_loss = -tf.reduce_mean(D_fake) + (100)*recon_loss
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
@@ -109,9 +109,9 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(v_loss, var_list=v_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(g_loss, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
 config = tf.ConfigProto(device_count={'GPU': 1})
