@@ -14,7 +14,7 @@ import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
-parser.add_argument('-n','--name', default='Test_3D_IWGAN', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-n','--name', default='LSGAN_32', help='The name of the current experiment, this will be used to create folders and save models.')
 parser.add_argument('-d','--data', default='data/voxels/face', help ='The location for the object voxel models.' )
 parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
 parser.add_argument('-e','--epochs', default=4501, help ='The number of epochs to run for.', type=int)
@@ -63,16 +63,16 @@ net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.
 #net_d2, D_legit     = discriminator(real_models,  output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 
 ########## Gradient penalty calculations ##############
-alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
-difference          = G_train - real_models
-inter               = []
-for i in range(args.batchsize): 
-    inter.append(difference[i] *alpha[i])
-inter = tf.unstack(inter)
-interpolates        = real_models + inter
-gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
-slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
-gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
+# alpha               = tf.random_uniform(shape=[args.batchsize,1] ,minval =0., maxval=1.)
+# difference          = G_train - real_models
+# inter               = []
+# for i in range(args.batchsize): 
+#     inter.append(difference[i] *alpha[i])
+# inter = tf.unstack(inter)
+# interpolates        = real_models + inter
+# gradients           = tf.gradients(discriminator(interpolates, output_size, batch_size= args.batchsize, improved = True, is_train = False, reuse= True)[1],[interpolates])[0]
+# slopes              = tf.sqrt(tf.reduce_sum(tf.square(gradients),reduction_indices=[1]))
+# gradient_penalty    = tf.reduce_mean((slopes-1.)**2.)
 
 ########### Loss calculations #########################
 kl_loss             = tf.reduce_mean(-sigmas +.5*(-1.+tf.exp(2.*sigmas)+tf.square(means)))  
@@ -84,19 +84,21 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss")) + (100)*recon_loss
 # d_loss = d_fake_loss + d_real_loss + 10.*gradient_penalty
 
-# logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
-# logits_diff_fake_real = D_fake - tf.reduce_mean(D_real, axis=0, keepdims=True)
+logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
+logits_diff_fake_real = D_fake - tf.reduce_mean(D_legit, axis=0, keepdims=True)
 
-# d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
-# d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
-# d_loss = d_loss_real + d_loss_fake
+d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
+d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
+d_loss = d_loss_real + d_loss_fake
 
-# g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
-# g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
-# g_loss = g_loss_real + g_loss_fake
+g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
+g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
+g_loss = g_loss_real + g_loss_fake
 
-d_loss = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
-g_loss = -tf.reduce_mean(D_fake) + (100)*recon_loss
+# d_loss = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
+# g_loss = -tf.reduce_mean(D_fake) + (100)*recon_loss
+# d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
+# g_loss = -tf.reduce_mean(tf.log(D_fake))
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
