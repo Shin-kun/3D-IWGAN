@@ -49,9 +49,9 @@ z_x = tf.add(means,  tf.multiply(sigmas, eps))
 net_g, G_dec         = generator_32(z_x, batch_size=args.batchsize, is_train=True, reuse=False, sig=True)
 net_g2, G_train      = generator_32(z, batch_size=args.batchsize, is_train=True, reuse=True, sig=True)
 
-net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
@@ -84,21 +84,21 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss")) + (100)*recon_loss
 # d_loss = d_fake_loss + d_real_loss + 10.*gradient_penalty
 
-logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
-logits_diff_fake_real = D_fake - tf.reduce_mean(D_legit, axis=0, keepdims=True)
+# logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
+# logits_diff_fake_real = D_fake - tf.reduce_mean(D_legit, axis=0, keepdims=True)
 
-d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
-d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
-d_loss = d_loss_real + d_loss_fake
+# d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
+# d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
+# d_loss = d_loss_real + d_loss_fake
 
-g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
-g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
-g_loss = g_loss_real + g_loss_fake
+# g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
+# g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
+# g_loss = g_loss_real + g_loss_fake
 
 # d_loss = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
 # g_loss = -tf.reduce_mean(D_fake) + (100)*recon_loss
-# d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
-# g_loss = -tf.reduce_mean(tf.log(D_fake))
+d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
+g_loss = -tf.reduce_mean(tf.log(D_fake))
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
@@ -111,9 +111,9 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(g_loss, var_list=g_vars)
-v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5, beta2=0.9).minimize(v_loss, var_list=v_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 0.00005, beta1=0.5).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 0.0025, beta1=0.5).minimize(g_loss, var_list=g_vars)
+v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
 config = tf.ConfigProto(device_count={'GPU': 1})
@@ -180,13 +180,13 @@ if  args.train:
             # if Train_Dis:
             # else:
                 # ones = sess.run([D_eval], feed_dict={real_models: models})
-            errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
+            errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})            
+            track_d_loss.append(-errD)
+            track_d_loss_iter.append(iter_counter)
                         
             #training the gen / decoder and the encoder 
             if iter_counter % 5 ==0:
-                errD,_,errV,_,r_loss = sess.run([d_loss, d_optim, v_loss, v_optim, recon_loss] ,feed_dict={images: batch_images, real_models:models})            
-                track_d_loss.append(-errD)
-                track_d_loss_iter.append(iter_counter)
+                errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
 
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
