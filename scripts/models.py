@@ -155,10 +155,10 @@ def discriminator_64(inputs ,output_size, improved = False, VAE_loss = False, si
 		net_4 = Conv3D(net_3, df_dim*8, '4', batch_norm = not improved, is_train = is_train)   
 		net_4.outputs = tf.nn.leaky_relu(net_4.outputs, alpha=0.2, name='d/net_4/lrelu')
 		
-		net_5 = Conv3D(net_3, df_dim*16, '4', batch_norm = not improved, is_train = is_train)   
+		net_5 = Conv3D(net_4, df_dim*16, '5', batch_norm = not improved, is_train = is_train)   
 		net_5.outputs = tf.nn.leaky_relu(net_5.outputs, alpha=0.2, name='d/net_5/lrelu')
 
-		net_6 = FlattenLayer(net_4, name='d/net_6/flatten')
+		net_6 = FlattenLayer(net_5, name='d/net_6/flatten')
 		net_6 = tl.layers.DenseLayer(net_6, n_units=output_units, act=tf.identity,
 										W_init = tf.random_normal_initializer(stddev=0.02),
 										name='d/net_6/dense')
