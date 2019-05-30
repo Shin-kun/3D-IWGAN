@@ -15,8 +15,8 @@ logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',lev
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
 parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
-parser.add_argument('-n','--name', default='LSGAN_64', help='The name of the current experiment, this will be used to create folders and save models.')
-parser.add_argument('-d','--data', default='data/voxels/face_64', help ='The location for the object voxel models.' )
+parser.add_argument('-n','--name', default='LSGAN_batch_32', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-d','--data', default='data/voxels/face', help ='The location for the object voxel models.' )
 parser.add_argument('-e','--epochs', default=4501, help ='The number of epochs to run for.', type=int)
 parser.add_argument('-b','--batchsize', default=256, help ='The batch size.', type=int)
 parser.add_argument('-sample', default= 5, help='How often generated obejcts are sampled and saved.', type= int)
@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name + "/"
 save_dir =  "savepoint/" + args.name + "/"
-output_size = 64
+output_size = 32
 
 ######### make directories ############################
 
@@ -46,12 +46,12 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_64(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
-net_g2, G_train      = generator_64(z, batch_size=args.batchsize, is_train=True, reuse=True)
+net_g, G_dec         = generator_32(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_32(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake    = discriminator_64(G_dec, output_size, batch_size= args.batchsize, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator_64(G_train, output_size, batch_size= args.batchsize, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator_64(real_models, output_size, batch_size= args.batchsize, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
