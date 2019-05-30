@@ -211,7 +211,7 @@ def render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_l
     #     plt.savefig(save_dir+'/plots/' + str(epoch)+'.png' )
     #     plt.clf()
 
-def save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter = None, track_recon_loss=None, track_valid_loss_iter=None, track_valid_loss=None):
+def save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter = None, track_recon_loss=None, track_valid_loss_iter=None, track_valid_loss=None, track_g_loss=None, track_g_loss_iter=None):
     np.save(save_dir+'/plots/track_d_loss_iter', track_d_loss_iter)
     np.save(save_dir+'/plots/track_d_loss', track_d_loss)
     if track_recon_loss is not None:

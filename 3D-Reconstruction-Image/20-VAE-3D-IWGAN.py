@@ -14,13 +14,13 @@ import logging
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
-parser.add_argument('-n','--name', default='LSGAN_32', help='The name of the current experiment, this will be used to create folders and save models.')
-parser.add_argument('-d','--data', default='data/voxels/face', help ='The location for the object voxel models.' )
 parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
+parser.add_argument('-n','--name', default='LSGAN_64', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-d','--data', default='data/voxels/face_64', help ='The location for the object voxel models.' )
 parser.add_argument('-e','--epochs', default=4501, help ='The number of epochs to run for.', type=int)
 parser.add_argument('-b','--batchsize', default=256, help ='The batch size.', type=int)
 parser.add_argument('-sample', default= 5, help='How often generated obejcts are sampled and saved.', type= int)
-parser.add_argument('-save', default= 5, help='How often the network models are saved.', type= int)
+parser.add_argument('-save', default= 50, help='How often the network models are saved.', type= int)
 parser.add_argument('-graph', default= 5, help='How often the discriminator loss and the reconstruction loss graphs are saved.', type= int)
 parser.add_argument('-l', '--load', default= False, help='Indicates if a previously loaded model should be loaded.', action = 'store_true')
 parser.add_argument('-le', '--load_epoch', default= '', help='The epoch to number to be loaded from.', type=str)
@@ -29,7 +29,7 @@ args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name + "/"
 save_dir =  "savepoint/" + args.name + "/"
-output_size = 32
+output_size = 64
 
 ######### make directories ############################
 
@@ -46,12 +46,12 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_32(z_x, batch_size=args.batchsize, is_train=True, reuse=False, sig=True)
-net_g2, G_train      = generator_32(z, batch_size=args.batchsize, is_train=True, reuse=True, sig=True)
+net_g, G_dec         = generator_64(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_64(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, improved = True, sig = True, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator_64(G_dec, output_size, batch_size= args.batchsize, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator_64(G_train, output_size, batch_size= args.batchsize, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator_64(real_models, output_size, batch_size= args.batchsize, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
@@ -84,21 +84,21 @@ recon_loss          = tf.reduce_mean(tf.square(real_models-G_dec))/2.
 # g_loss = tf.reduce_mean(tl.cost.sigmoid_cross_entropy( tf.ones_like(D_fake), D_fake, name="g_loss")) + (100)*recon_loss
 # d_loss = d_fake_loss + d_real_loss + 10.*gradient_penalty
 
-# logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
-# logits_diff_fake_real = D_fake - tf.reduce_mean(D_legit, axis=0, keepdims=True)
+logits_diff_real_fake = D_legit - tf.reduce_mean(D_fake, axis=0, keepdims=True)
+logits_diff_fake_real = D_fake - tf.reduce_mean(D_legit, axis=0, keepdims=True)
 
-# d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
-# d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
-# d_loss = d_loss_real + d_loss_fake
+d_loss_real = tf.reduce_mean(tf.square(logits_diff_real_fake-1.0))
+d_loss_fake = tf.reduce_mean(tf.square(logits_diff_fake_real+1.0))
+d_loss = d_loss_real + d_loss_fake
 
-# g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
-# g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
-# g_loss = g_loss_real + g_loss_fake
+g_loss_real = tf.reduce_mean(tf.square(logits_diff_fake_real-1.0))
+g_loss_fake = tf.reduce_mean(tf.square(logits_diff_real_fake+1.0))
+g_loss = g_loss_real + g_loss_fake
 
 # d_loss = -tf.reduce_mean(D_legit) + tf.reduce_mean(D_fake) + 10.*gradient_penalty
 # g_loss = -tf.reduce_mean(D_fake) + (100)*recon_loss
-d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
-g_loss = -tf.reduce_mean(tf.log(D_fake))
+# d_loss = -tf.reduce_mean(tf.log(D_legit) + tf.log(1. - D_fake))
+# g_loss = -tf.reduce_mean(tf.log(D_fake))
 v_loss              = kl_loss + recon_loss 
 
 ############ Optimization #############
@@ -111,8 +111,8 @@ net_d.print_params(False)
 net_m.print_params(False)
 net_s.print_params(False)
 
-d_optim = tf.train.AdamOptimizer( learning_rate = 0.00005, beta1=0.5).minimize(d_loss, var_list=d_vars)
-g_optim = tf.train.AdamOptimizer( learning_rate = 0.0025, beta1=0.5).minimize(g_loss, var_list=g_vars)
+d_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(d_loss, var_list=d_vars)
+g_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(g_loss, var_list=g_vars)
 v_optim = tf.train.AdamOptimizer( learning_rate = 1e-4, beta1=0.5).minimize(v_loss, var_list=v_vars)
 
 ####### Training ################
@@ -131,7 +131,7 @@ if args.load:
     else: 
         track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, iter_counter = load_values(save_dir, recon = True ,valid = True )
 else:     
-    track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, iter_counter  = [],[],[],[],[],[],0
+    track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, track_g_loss, track_g_loss_iter, iter_counter  = [],[],[],[],[],[],[],[],0
   
 
 if len(args.load_epoch)>1: 
@@ -185,12 +185,14 @@ if  args.train:
             track_d_loss_iter.append(iter_counter)
                         
             #training the gen / decoder and the encoder 
-            if iter_counter % 5 ==0:
+            # if iter_counter % 5 ==0:
+            for i in range(2):
                 errG,_,errV,_,r_loss= sess.run([g_loss, g_optim, v_loss, v_optim, recon_loss], feed_dict={images: batch_images, real_models:models})
 
             track_recon_loss.append(r_loss)
             track_recon_loss_iter.append(iter_counter)
-
+            track_g_loss.append(errG)
+            track_g_loss_iter.append(iter_counter)
             # Train_Dis = (cal_acc(zeros,ones)<0.95)# only train discriminator at certain level of accuracy 
 
             logging.debug("Epoch: [%2d/%2d] [%4d/%4d] time: %4.4f, d_loss: %.4f, g_loss: %.4f, v_loss: %.4f, r_loss: %.4f" % (epoch, args.epochs, idx, len(files)/args.batchsize, time.time() - start_time, errD, errG, errV, r_loss))           
@@ -218,7 +220,7 @@ if  args.train:
             track_valid_loss.append(r_loss[0])
             track_valid_loss_iter.append(iter_counter)
             render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
-            save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) # same here but for 300 
+            save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, track_g_loss, track_g_loss_iter) # same here but for 300 
 else:
     # TODO WORK on testing here
     print("Testing")
