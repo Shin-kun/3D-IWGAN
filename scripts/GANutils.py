@@ -60,8 +60,10 @@ def save_voxels(save_dir, models, epock, recon_models = None):
     if recon_models is not None: 
         np.save(save_dir+str(epock) + '_VAE', recon_models) 
       
-
-        
+def grab_images(image_dir):
+    image_dir+='/'
+    
+    return [f for f in glob(image_dir + '*.jpg')]
 
 def grab_files_images(image_dir, voxel_dir): 
     files = []

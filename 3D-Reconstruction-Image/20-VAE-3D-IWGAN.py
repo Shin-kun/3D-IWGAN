@@ -10,15 +10,16 @@ from scripts.GANutils import *
 from scripts.models import *
 import argparse
 import logging
+from tqdm import tqdm
 
 logging.basicConfig(format='%(asctime)s %(message)s', datefmt='%Y%m%d%H%M%S',level=logging.DEBUG)
 
 parser = argparse.ArgumentParser(description='3D-GAN implementation for 32*32*32 voxel output')
-parser.add_argument('-i','--images', default='data/images/faces', help ='The location for the images.' )
-parser.add_argument('-n','--name', default='LSGAN_batch_32', help='The name of the current experiment, this will be used to create folders and save models.')
+parser.add_argument('-n','--name', default='LSGAN_20', help='The name of the current experiment, this will be used to create folders and save models.')
 parser.add_argument('-d','--data', default='data/voxels/face', help ='The location for the object voxel models.' )
+parser.add_argument('-i','--images', default='data/images/test', help ='The location for the images.' )
 parser.add_argument('-e','--epochs', default=4501, help ='The number of epochs to run for.', type=int)
-parser.add_argument('-b','--batchsize', default=256, help ='The batch size.', type=int)
+parser.add_argument('-b','--batchsize', default=1, help ='The batch size.', type=int)
 parser.add_argument('-sample', default= 5, help='How often generated obejcts are sampled and saved.', type= int)
 parser.add_argument('-save', default= 50, help='How often the network models are saved.', type= int)
 parser.add_argument('-graph', default= 5, help='How often the discriminator loss and the reconstruction loss graphs are saved.', type= int)
@@ -29,7 +30,7 @@ args = parser.parse_args()
 
 checkpoint_dir = "checkpoint/" + args.name + "/"
 save_dir =  "savepoint/" + args.name + "/"
-output_size = 32
+output_size = 20
 
 ######### make directories ############################
 
@@ -46,12 +47,12 @@ net_m, net_s, means, sigmas = VAE(images) # means in the input vector, variance 
 z_x = tf.add(means,  tf.multiply(sigmas, eps))
 
 # this is for generating dcgan instead 
-net_g, G_dec         = generator_32(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
-net_g2, G_train      = generator_32(z, batch_size=args.batchsize, is_train=True, reuse=True)
+net_g, G_dec         = generator_LSGAN(z_x, batch_size=args.batchsize, is_train=True, reuse=False)
+net_g2, G_train      = generator_LSGAN(z, batch_size=args.batchsize, is_train=True, reuse=True)
 
-net_d, D_dec_fake    = discriminator(G_dec, output_size, batch_size= args.batchsize, is_train = True, reuse= False)
-net_d2, D_fake       = discriminator(G_train, output_size, batch_size= args.batchsize, is_train = True, reuse= True)
-net_d2, D_legit      = discriminator(real_models, output_size, batch_size= args.batchsize, is_train= True, reuse = True)
+net_d, D_dec_fake    = discriminator_LSGAN(G_dec, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= False)
+net_d2, D_fake       = discriminator_LSGAN(G_train, output_size, batch_size= args.batchsize, improved = True, is_train = True, reuse= True)
+net_d2, D_legit      = discriminator_LSGAN(real_models, output_size, batch_size= args.batchsize, improved = True, is_train= True, reuse = True)
 # net_eval, D_eval      = discriminator_DCGAN(real_models,  output_size, batch_size= args.batchsize, is_train= False, reuse = True) # this is for desciding weather to train the discriminator
 
 # Comment out in order to train DC-GAN
@@ -222,6 +223,23 @@ if  args.train:
             render_graphs(save_dir,epoch, track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss) #this will only work after a 50 iterations to allows for proper averating 
             save_values(save_dir,track_d_loss_iter, track_d_loss, track_recon_loss_iter, track_recon_loss, track_valid_loss_iter, track_valid_loss, track_g_loss, track_g_loss_iter) # same here but for 300 
 else:
-    # TODO WORK on testing here
     print("Testing")
-    
+    data_image_directory = "data/images/test/"
+    files = grab_images(args.images)
+    valid_images = []
+    for file in tqdm(files):
+        image_test = data_image_directory + file.split('\\')[-1]
+        image_name = file.split('\\')[-1].split('.')[0]
+        print("This is file", file)
+        print("this is image_test", image_test)        
+        img = Image.open(image_test)
+        valid_images.append(np.asarray(img,dtype='uint8'))
+        valid_images = np.array(valid_images)
+
+        valid_image = tf.reshape(valid_images, [args.batchsize, 256, 256, 3])
+
+        models,recon_models = sess.run([net_g2.outputs,net_g.outputs], feed_dict={images: valid_images})       
+        print('----saving: ', image_name)
+        save_voxels(save_dir, models, image_name, recon_models )
+        image_with_test = []
+        valid_images = []
